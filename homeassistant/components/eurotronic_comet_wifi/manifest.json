@@ -1,0 +1,11 @@
+{
+  "domain": "eurotronic_comet_wifi",
+  "name": "Eurotronic Comet WiFi",
+  "codeowners": ["@zerog981"],
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/eurotronic_comet_wifi",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "quality_scale": "bronze",
+  "requirements": ["comet_wifi_communicator==v0.0.7"]
+}
