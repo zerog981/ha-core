@@ -6,7 +6,7 @@ from asyncio import sleep
 import logging
 from typing import Any
 
-from comet_wifi_communicator.thermostat import Thermostat
+from comet_wifi_communicator.thermostat import MQTTConnectError, Thermostat
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
@@ -20,8 +20,8 @@ from .const import (
     DEFAULT_MQTT_HOST,
     DEFAULT_MQTT_PORT,
     DOMAIN,
+    FETCH_DATA_TIMEOUT,
 )
-from .coordinator import FETCH_DATA_TIMEOUT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +49,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     try:
         await client.connect()
         await sleep(FETCH_DATA_TIMEOUT)
+    except MQTTConnectError as err:
+        raise CannotConnect from err
     except Exception as err:
         raise CannotConnect from err
 
@@ -57,7 +59,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     await client.disconnect()
 
-    # Return info that you want to store in the config entry.
+    # Return info to be stored in the config entry.
     return {"title": data[CONF_NAME], "mac": client.mac}
 
 
@@ -76,8 +78,6 @@ class CometWiFiConfigFlow(ConfigFlow, domain=DOMAIN):
                 info = await validate_input(self.hass, user_input)
             except CannotConnect:
                 errors["base"] = "cannot_connect"
-            # except InvalidAuth:
-            #    errors["base"] = "invalid_auth"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"

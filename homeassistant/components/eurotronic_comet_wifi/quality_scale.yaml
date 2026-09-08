@@ -7,8 +7,8 @@ rules:
   brands: done # TODO
   common-modules: done
   config-flow-test-coverage: done # TODO
-  config-flow: done # TODO
-  dependency-transparency: done # TODO Public CI pipeline missing
+  config-flow: done
+  dependency-transparency: done
   docs-actions:
     status: exempt
     comment: Integration does not register custom actions.
@@ -23,7 +23,7 @@ rules:
   runtime-data: done
   test-before-configure: done # TODO
   test-before-setup: done # TODO
-  unique-config-entry: done # TODO
+  unique-config-entry: done
 
   # Silver
   action-exceptions: todo

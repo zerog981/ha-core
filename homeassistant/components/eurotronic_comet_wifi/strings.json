@@ -5,15 +5,21 @@
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "step": {
       "user": {
         "data": {
-          "host": "[%key:common::config_flow::data::host%]",
-          "password": "[%key:common::config_flow::data::password%]",
-          "username": "[%key:common::config_flow::data::username%]"
+          "mac": "MAC",
+          "mqtt_host": "MQTT Host",
+          "mqtt_port": "MQTT Port",
+          "name": "[%key:common::config_flow::data::name%]"
+        },
+        "data_description": {
+          "mac": "Thermostat MAC address",
+          "mqtt_host": "IP of MQTT broker",
+          "mqtt_port": "Port of MQTT broker",
+          "name": "Thermostat Name"
         }
       }
     }

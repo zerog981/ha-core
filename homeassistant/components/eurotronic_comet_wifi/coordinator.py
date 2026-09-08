@@ -9,19 +9,13 @@ from datetime import timedelta
 from comet_wifi_communicator.thermostat import Thermostat
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_MAC
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import (
-    CONF_MQTT_HOST,
-    CONF_MQTT_PORT,
-    DOMAIN,
-    FETCH_DATA_TIMEOUT,
-    LOGGER,
-    POLL_INTERVAL,
-)
+from .const import DOMAIN, FETCH_DATA_TIMEOUT, LOGGER, POLL_INTERVAL
+
+type CometWiFiConfigEntry = ConfigEntry[CometWiFiDataCoordinator]
 
 
 @dataclass
@@ -37,22 +31,22 @@ class CometWiFiData:
 class CometWiFiDataCoordinator(DataUpdateCoordinator[CometWiFiData]):
     """Class to manage fetching Comet WiFi data."""
 
-    mac: str
-
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: CometWiFiConfigEntry,
+        client: Thermostat,
+    ) -> None:
         """Initialize the coordinator."""
         super().__init__(
             hass,
             logger=LOGGER,
-            name=DOMAIN,
+            name=f"{DOMAIN} {client.mac}",
             update_interval=timedelta(seconds=POLL_INTERVAL),
             config_entry=config_entry,
         )
-        self.client = Thermostat(
-            mqtt_host=config_entry.data[CONF_MQTT_HOST],
-            mqtt_port=config_entry.data[CONF_MQTT_PORT],
-            mac=config_entry.data[CONF_MAC],
-        )
+        self.client = client
+        self.mac = client.mac
 
     async def _async_setup(self) -> None:
         try:
