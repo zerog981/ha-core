@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import (
+    CONNECTION_NETWORK_MAC,
+    DeviceInfo,
+    format_mac,
+)
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DEVICE_NAME_PREFIX, DOMAIN, MANUFACTURER, MODEL
 from .coordinator import CometWiFiDataCoordinator
 
 
@@ -18,12 +22,10 @@ class CometWiFiEntity(CoordinatorEntity[CometWiFiDataCoordinator]):
         """Initialize the Comet WiFi entity."""
         super().__init__(coordinator)
 
-        # Device info added in __init__.py
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self.coordinator.mac)}
+            identifiers={(DOMAIN, coordinator.mac)},
+            connections={(CONNECTION_NETWORK_MAC, format_mac(coordinator.mac))},
+            name=f"{DEVICE_NAME_PREFIX} {coordinator.mac}",
+            manufacturer=MANUFACTURER,
+            model=MODEL,
         )
-
-    @property
-    def available(self) -> bool:
-        """Returns the current availability state."""
-        return self.coordinator.data.is_connected

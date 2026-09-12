@@ -2,12 +2,10 @@
 
 from typing import Any
 
-from comet_wifi_communicator.const import (
-    TEMPERATURE_SETPOINT_MAX,
-    TEMPERATURE_SETPOINT_MIN,
-)
+from aiocometwifi.const import TEMPERATURE_SETPOINT_MAX, TEMPERATURE_SETPOINT_MIN
 
 from homeassistant.components.climate import (
+    ATTR_HVAC_MODE,
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
@@ -17,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import CometWiFiConfigEntry
-from .const import UNIQUE_ID_SUFFIX_CLIMATE
+from .const import DEFAULT_SETPOINT, UNIQUE_ID_SUFFIX_CLIMATE
 from .coordinator import CometWiFiDataCoordinator
 from .entity import CometWiFiEntity
 
@@ -70,10 +68,13 @@ class CometWiFiClimateEntity(CometWiFiEntity, ClimateEntity):
         return HVACMode.OFF
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Set target temperature."""
+        """Set target temperature, unless also asked to turn off."""
+        if kwargs.get(ATTR_HVAC_MODE) == HVACMode.OFF:
+            await self.async_set_hvac_mode(HVACMode.OFF)
+            return
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is not None:
-            await self.coordinator.client.set_temperature(temperature)
+            await self.coordinator.client.set_setpoint_temperature(temperature)
             await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self) -> None:
@@ -87,7 +88,10 @@ class CometWiFiClimateEntity(CometWiFiEntity, ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set HVAC mode."""
         if hvac_mode == HVACMode.HEAT:
-            await self.coordinator.client.set_temperature(TEMPERATURE_SETPOINT_MIN)
+            setpoint = self.coordinator.last_heating_setpoint
+            if setpoint is None:
+                setpoint = DEFAULT_SETPOINT
+            await self.coordinator.client.set_setpoint_temperature(setpoint)
         if hvac_mode == HVACMode.OFF:
             await self.coordinator.client.turn_off()
         await self.coordinator.async_request_refresh()

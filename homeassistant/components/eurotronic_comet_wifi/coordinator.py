@@ -1,4 +1,4 @@
-"""Data update coordinator for CometWiFi energy monitors."""
+"""Data update coordinator for Comet WiFi thermostats."""
 
 from __future__ import annotations
 
@@ -6,12 +6,11 @@ from asyncio import sleep
 from dataclasses import dataclass
 from datetime import timedelta
 
-from comet_wifi_communicator.thermostat import Thermostat
+from aiocometwifi import CometWifiError, Thermostat
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryError
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, FETCH_DATA_TIMEOUT, LOGGER, POLL_INTERVAL
 
@@ -25,7 +24,6 @@ class CometWiFiData:
     temperature_setpoint: float
     temperature_ambient: float
     is_heating: bool
-    is_connected: bool
 
 
 class CometWiFiDataCoordinator(DataUpdateCoordinator[CometWiFiData]):
@@ -47,29 +45,33 @@ class CometWiFiDataCoordinator(DataUpdateCoordinator[CometWiFiData]):
         )
         self.client = client
         self.mac = client.mac
+        self.last_heating_setpoint: float | None = None
 
     async def _async_setup(self) -> None:
+        """Subscribe to topics for the thermostat."""
         try:
             await self.client.connect()
-            self.mac = self.client.mac
-        except Exception as err:
-            raise ConfigEntryError from err
+        except CometWifiError as err:
+            raise UpdateFailed(f"Error connecting to {self.mac}: {err}") from err
 
     async def _async_update_data(self) -> CometWiFiData:
         """Fetch data from Comet WiFi device."""
         try:
             await self.client.update_heating_values()
-            await sleep(FETCH_DATA_TIMEOUT)  # Wait for reply
-            is_heating = self.client.is_heating
-            temperature_setpoint = self.client.setpoint
-            temperature_ambient = self.client.temperature_ambient
-            is_connected = self.client.connected
-        except Exception as err:
-            # will raise ConfigEntryAuthFailed once reauth is implemented
-            raise ConfigEntryError("Error fetching device info: {err}") from err
-        # except ConnectError as err:
-        #    raise UpdateFailed(f"Error fetching device info: {err}") from err
+        except CometWifiError as err:
+            raise UpdateFailed(f"Error requesting data from {self.mac}: {err}") from err
+
+        # Give the device some time to answer
+        await sleep(FETCH_DATA_TIMEOUT)
+        if not self.client.connected:
+            raise UpdateFailed(f"No reply from {self.mac}.")
+
+        # Remember setpoint that turning on can restore it.
+        if self.client.is_heating:
+            self.last_heating_setpoint = self.client.setpoint
 
         return CometWiFiData(
-            temperature_setpoint, temperature_ambient, is_heating, is_connected
+            temperature_setpoint=self.client.setpoint,
+            temperature_ambient=self.client.temperature_ambient,
+            is_heating=self.client.is_heating,
         )

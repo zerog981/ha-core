@@ -226,6 +226,9 @@ aiobotocore==2.21.1
 # homeassistant.components.comelit
 aiocomelit==2.0.2
 
+# homeassistant.components.eurotronic_comet_wifi
+aiocometwifi==0.1.0
+
 # homeassistant.components.dhcp
 aiodhcpwatcher==1.2.1
 
@@ -748,9 +751,6 @@ colorlog==6.10.1
 
 # homeassistant.components.color_extractor
 colorthief==0.2.1
-
-# homeassistant.components.eurotronic_comet_wifi
-comet_wifi_communicator==v0.6.0
 
 # homeassistant.components.compit
 compit-inext-api==0.8.0

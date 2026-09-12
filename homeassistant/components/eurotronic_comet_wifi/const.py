@@ -4,17 +4,13 @@ import logging
 
 DOMAIN = "eurotronic_comet_wifi"
 MANUFACTURER = "Eurotronic"
-MODEL = "Euroronic Comet WiFi"
+MODEL = "Eurotronic Comet WiFi"
+DEVICE_NAME_PREFIX = "Comet WiFi"
 
 LOGGER = logging.getLogger(__package__)
 
-CONF_MQTT_HOST = "mqtt_host"
-CONF_MQTT_PORT = "mqtt_port"
-
-DEFAULT_MQTT_HOST = "localhost"
-DEFAULT_MQTT_PORT = 1883
-
 POLL_INTERVAL = 900  # seconds
 FETCH_DATA_TIMEOUT = 5  # seconds
+DEFAULT_SETPOINT = 20.0  # °C, when turning on before any setpoint was set
 
 UNIQUE_ID_SUFFIX_CLIMATE = "climate"

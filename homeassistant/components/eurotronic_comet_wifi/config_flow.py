@@ -6,61 +6,44 @@ from asyncio import sleep
 import logging
 from typing import Any
 
-from comet_wifi_communicator.thermostat import MQTTConnectError, Thermostat
+from aiocometwifi import CometWifiConnectionError, CometWifiValueError, Thermostat
 import voluptuous as vol
 
+from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_MAC, CONF_NAME
+from homeassistant.const import CONF_MAC
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import (
-    CONF_MQTT_HOST,
-    CONF_MQTT_PORT,
-    DEFAULT_MQTT_HOST,
-    DEFAULT_MQTT_PORT,
-    DOMAIN,
-    FETCH_DATA_TIMEOUT,
-)
+from .const import DEVICE_NAME_PREFIX, DOMAIN, FETCH_DATA_TIMEOUT
+from .transport import get_mqtt_client
 
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_NAME): str,
-        vol.Required(CONF_MAC): str,
-        vol.Optional(CONF_MQTT_HOST, default=DEFAULT_MQTT_HOST): str,
-        vol.Optional(CONF_MQTT_PORT, default=DEFAULT_MQTT_PORT): int,
-    }
-)
+STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_MAC): str})
 
 
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
+async def validate_input(hass: HomeAssistant, mac: str) -> str:
+    """Make sure the thermostat answers and returns its normalized MAC address.
 
-    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
+    Raises CometWifiValueError for a malformed MAC address and CannotConnect when the thermostat does not reply.
     """
 
-    client = Thermostat(
-        mqtt_host=data[CONF_MQTT_HOST],
-        mqtt_port=data[CONF_MQTT_PORT],
-        mac=data[CONF_MAC],
-    )
+    client = Thermostat(get_mqtt_client(hass), mac)
     try:
         await client.connect()
+        # Give the device time to answer
         await sleep(FETCH_DATA_TIMEOUT)
-    except MQTTConnectError as err:
+    except CometWifiConnectionError as err:
         raise CannotConnect from err
-    except Exception as err:
-        raise CannotConnect from err
+    finally:
+        await client.disconnect()
 
     if not client.connected:
         raise CannotConnect
 
-    await client.disconnect()
-
     # Return info to be stored in the config entry.
-    return {"title": data[CONF_NAME], "mac": client.mac}
+    return client.mac
 
 
 class CometWiFiConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -72,19 +55,29 @@ class CometWiFiConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle the initial step."""
+        try:
+            if not mqtt.is_connected(self.hass):
+                return self.async_abort(reason="mqtt_not_connected")
+        except KeyError:
+            return self.async_abort(reason="mqtt_not_configured")
+
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                info = await validate_input(self.hass, user_input)
+                mac = await validate_input(self.hass, user_input[CONF_MAC])
+            except CometWifiValueError:
+                errors[CONF_MAC] = "invalid_mac"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                await self.async_set_unique_id(info["mac"])
+                await self.async_set_unique_id(mac)
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(title=info["title"], data=user_input)
+                return self.async_create_entry(
+                    title=f"{DEVICE_NAME_PREFIX} {mac}", data={CONF_MAC: mac}
+                )
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
@@ -93,7 +86,3 @@ class CometWiFiConfigFlow(ConfigFlow, domain=DOMAIN):
 
 class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""

@@ -2,24 +2,15 @@
 
 from __future__ import annotations
 
-from asyncio import sleep
+from aiocometwifi import Thermostat
 
-from comet_wifi_communicator.thermostat import Thermostat
-
+from homeassistant.components import mqtt
 from homeassistant.const import CONF_MAC, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
 
-from .const import (
-    CONF_MQTT_HOST,
-    CONF_MQTT_PORT,
-    DOMAIN,
-    FETCH_DATA_TIMEOUT,
-    MANUFACTURER,
-    MODEL,
-)
 from .coordinator import CometWiFiConfigEntry, CometWiFiDataCoordinator
+from .transport import get_mqtt_client
 
 _PLATFORMS: list[Platform] = [Platform.CLIMATE]
 
@@ -27,28 +18,11 @@ _PLATFORMS: list[Platform] = [Platform.CLIMATE]
 async def async_setup_entry(hass: HomeAssistant, entry: CometWiFiConfigEntry) -> bool:
     """Set up Eurotronic Comet WiFi from a config entry."""
 
-    mac = entry.data[CONF_MAC]
+    if not await mqtt.async_wait_for_mqtt_client(hass):
+        raise ConfigEntryNotReady("MQTT integration not available.")
 
-    client = Thermostat(
-        mqtt_host=entry.data[CONF_MQTT_HOST],
-        mqtt_port=entry.data[CONF_MQTT_PORT],
-        mac=mac,
-    )
-
-    await client.connect()
-    await sleep(FETCH_DATA_TIMEOUT)
-
-    if not client.connected:
-        raise ConfigEntryNotReady
-
-    device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
-        config_entry_id=entry.entry_id,
-        identifiers={(DOMAIN, mac)},
-        name=f"{mac}",
-        manufacturer=MANUFACTURER,
-        model=MODEL,
-    )
+    client = Thermostat(get_mqtt_client(hass), entry.data[CONF_MAC])
+    entry.async_on_unload(client.disconnect)  # No subscriptions are left behind
 
     coordinator = CometWiFiDataCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
