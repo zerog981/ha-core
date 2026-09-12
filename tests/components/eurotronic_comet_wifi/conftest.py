@@ -34,7 +34,7 @@ class FakeDevice:
         self.ambient = PAYLOAD_AMBIENT_22
 
     @callback
-    def on_command(self, msg: mqtt.ReceivedMessage) -> None:
+    def on_command(self, msg: mqtt.ReceiveMessage) -> None:
         """Store setpoint and reply with current values."""
         if not self.online:
             return

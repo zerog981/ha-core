@@ -8,7 +8,7 @@ COMMAND_TOPIC_REQUEST = f"01/{MAC}/S/AF"
 REPLY_TOPIC_SETPOINT = f"01/{MAC}/V/A0"
 REPLY_TOPIC_AMBIENT = f"01/{MAC}/V/A1"
 
-# Payloads are "# + hex of the temperature doubled
+# Payloads are "#" + hex of the doubled temperature
 PAYLOAD_SETPOINT_21 = "#2A"
 PAYLOAD_SETPOINT_23 = "#2E"
 PAYLOAD_AMBIENT_22 = "#2C"
