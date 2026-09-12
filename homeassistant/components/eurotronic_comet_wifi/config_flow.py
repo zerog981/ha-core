@@ -35,12 +35,13 @@ async def validate_input(hass: HomeAssistant, mac: str) -> str:
         await client.connect()
         # Give the device time to answer
         await sleep(FETCH_DATA_TIMEOUT)
+        connected = client.connected
     except CometWifiConnectionError as err:
         raise CannotConnect from err
     finally:
         await client.disconnect()
 
-    if not client.connected:
+    if not connected:
         raise CannotConnect
 
     # Return info to be stored in the config entry.
