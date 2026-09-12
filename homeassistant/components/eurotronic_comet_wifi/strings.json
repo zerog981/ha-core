@@ -3,7 +3,7 @@
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
       "mqtt_not_configured": "The Home Assistant MQTT integration is not set up.",
-      "mqtt_not_connected": "The Home Assistant MQTT integration is not conneted to a broker."
+      "mqtt_not_connected": "The Home Assistant MQTT integration is not connected to a broker."
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",

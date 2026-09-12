@@ -24,9 +24,10 @@ STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_MAC): str})
 
 
 async def validate_input(hass: HomeAssistant, mac: str) -> str:
-    """Make sure the thermostat answers and returns its normalized MAC address.
+    """Make sure the thermostat answers and return its normalized MAC address.
 
-    Raises CometWifiValueError for a malformed MAC address and CannotConnect when the thermostat does not reply.
+    Raises CometWifiValueError for a malformed MAC address and CannotConnect
+    when the thermostat does not reply.
     """
 
     client = Thermostat(get_mqtt_client(hass), mac)

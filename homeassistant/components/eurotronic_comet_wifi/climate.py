@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from aiocometwifi.const import TEMPERATURE_SETPOINT_MAX, TEMPERATURE_SETPOINT_MIN
+from aiocometwifi import TEMPERATURE_SETPOINT_MAX, TEMPERATURE_SETPOINT_MIN
 
 from homeassistant.components.climate import (
     ATTR_HVAC_MODE,
